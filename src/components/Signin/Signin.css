@@ -1,0 +1,7 @@
+.signin-field {
+    background-color: transparent;
+}
+
+.signin-field:hover {
+    background-color: black;
+}

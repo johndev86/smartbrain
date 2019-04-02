@@ -1,4 +1,5 @@
 import React from 'react';
+import './Signin.css';
 
 class Signin extends React.Component {
 
@@ -18,9 +19,13 @@ class Signin extends React.Component {
         this.setState({signInPassword: event.target.value});
     }
 
+    saveAuthTokenInSession = (token) => {
+        window.sessionStorage.setItem('token', token);
+    }
+
     onSubmitSignIn = () => {
-        console.log(this.state);
-        fetch('https://floating-river-46649.herokuapp.com/signin', {
+        
+        fetch(process.env.REACT_APP_API_URL+'/signin', {
             method: 'post',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -29,12 +34,24 @@ class Signin extends React.Component {
             })
         })
         .then(response => response.json())
-        .then(user => {
-            if (user.id) {
-                this.props.loadUser(user);
-                this.props.onRouteChange('home');
+        .then(data => {
+            if (data.token && data.success === 'true') {
+                fetch(process.env.REACT_APP_API_URL+'/profile', {
+                    method: 'get',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': data.token
+                    }
+                })
+                .then(response => response.json())
+                .then(user => {
+                    this.props.loadUser(user);
+                    this.props.onRouteChange('home');
+                    this.saveAuthTokenInSession(data.token);
+                })
             }
-        });
+        })
+        .catch(err=>console.log('error signing in'));
     }
 
     render() {
@@ -48,12 +65,12 @@ class Signin extends React.Component {
                             <div className="mt3">
                                 <label className="db fw6 lh-copy f6" htmlFor="email-address">Email</label>
                                 <input onChange={this.onEmailChange} 
-                                className="pa2 input-reset ba bg-transparent hover-bg-black hover-white w-100" type="email" name="email-address"  id="email-address"/>
+                                className="pa2 input-reset ba signin-field hover-white w-100" type="email" name="email-address"  id="email-address"/>
                             </div>
                             <div className="mv3">
                                 <label className="db fw6 lh-copy f6" htmlFor="password">Password</label>
                                 <input onChange={this.onPasswordChange} 
-                                className="b pa2 input-reset ba bg-transparent hover-bg-black hover-white w-100" type="password" name="password"  id="password"/>
+                                className="b pa2 input-reset ba signin-field hover-white w-100" type="password" name="password"  id="password"/>
                             </div>
                         </fieldset>
                         <div className="">

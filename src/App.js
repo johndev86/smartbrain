@@ -7,8 +7,9 @@ import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import Signin from './components/Signin/Signin';
 import Register from './components/Register/Register';
 import Particles from 'react-particles-js';
+import Modal from './components/Modal/Modal';
+import Profile from './components/Profile/Profile';
 
-import 'tachyons';
 import './App.css';
 
 const particlesOptions = {
@@ -26,12 +27,15 @@ const particlesOptions = {
 const initialState = {
   input: '',
   imageUrl: '',
-  box: {},
+  boxes: [],
   route: 'signin',
+  profileOpen: false,
   isSignedIn: false,
   user: {
     id: '',
     name: '',
+    age: 0,
+    pet: '',
     email: '',
     entries: 0,
     joined: ''
@@ -44,17 +48,40 @@ class App extends Component {
     this.state = initialState;
   }
 
-  calculateFaceLocation = (data) => {
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-    const image = document.getElementById('inputImage');
-    const width = Number(image.width);
-    const height = Number(image.height);
-    return {
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
+  componentDidMount() {
+    const token = window.sessionStorage.getItem('token');
+    if (token) {
+      fetch(process.env.REACT_APP_API_URL+'/profile', {
+        method: 'get',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        }
+      })
+      .then(resp => resp.json())
+      .then(data => {
+        if (data && data.id) {
+          this.loadUser(data);
+          this.onRouteChange('home');
+        }
+      })
     }
+  }
+
+  calculateFaceLocation = (data) => {
+    const regions = data.outputs[0].data.regions;
+    return regions.map(region => {
+      const clarifaiFace = region.region_info.bounding_box;
+      const image = document.getElementById('inputImage');
+      const width = Number(image.width);
+      const height = Number(image.height);
+      return {
+        leftCol: clarifaiFace.left_col * width,
+        topRow: clarifaiFace.top_row * height,
+        rightCol: width - (clarifaiFace.right_col * width),
+        bottomRow: height - (clarifaiFace.bottom_row * height)
+      }
+    });
   }
   
   loadUser = (data) => {
@@ -63,25 +90,39 @@ class App extends Component {
         name: data.name,
         id: data.id,
         email: data.email,
+        age: data.age,
+        pet: data.pet,
         entries: data.entries,
         joined: data.joined
       }
     })
   }
 
-  displayFaceBox = (box) => {
-    this.setState({box: box});
+  displayFaceBox = (boxes) => {
+    this.setState({boxes: boxes});
   }
 
   onInputChange = (event) => {
     this.setState({input: event.target.value});
   }
 
+  showProfile = () => {
+    this.setState({profileOpen: true});
+  }
+  
+  hideProfile = () => {
+    this.setState({profileOpen: false});
+  }
+
   onButtonSubmit = () => {
+    const token = window.sessionStorage.getItem('token');
     this.setState({imageUrl: this.state.input});
-    fetch('https://floating-river-46649.herokuapp.com/imageurl', {
+    fetch(process.env.REACT_APP_API_URL+'/imageurl', {
       method: 'post',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
       body: JSON.stringify({
         input: this.state.input
       })
@@ -89,12 +130,12 @@ class App extends Component {
     .then(response => response.json())
     .then(response => {
       if (response) {
-        fetch('https://floating-river-46649.herokuapp.com/image', {
+        fetch(process.env.REACT_APP_API_URL+'/image', {
           method: 'put',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            id: this.state.user.id
-          })
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          }
         })
         .then(response => response.json())
         .then(count => {
@@ -109,6 +150,7 @@ class App extends Component {
 
   onRouteChange = (route) => {
     if (route === 'signout') {
+      window.sessionStorage.removeItem('token');
       this.setState(initialState);
     } else if (route === 'home') {
       this.setState({isSignedIn: true});
@@ -117,7 +159,7 @@ class App extends Component {
   }
 
   routeComponents = (route) => {
-    const {box, imageUrl, isSignedIn, user} = this.state;
+    const {boxes, imageUrl, isSignedIn, user, profileOpen} = this.state;
     switch (route) {
       case 'signin':
         return <Signin loadUser={this.loadUser} onRouteChange={this.onRouteChange}/>
@@ -127,10 +169,13 @@ class App extends Component {
         if (isSignedIn) {
           return (
           <div>
+            {profileOpen && <Modal>
+              <Profile loadUser={this.loadUser} user={user} hideProfile={this.hideProfile}></Profile>
+            </Modal>}
             <Logo/>
                 <Rank name={user.name} entries={user.entries}/>
                 <ImageLinkForm onInputChange={this.onInputChange} onButtonSubmit={this.onButtonSubmit}/>
-                <FaceRecognition box={box} imageUrl={imageUrl}/>
+                <FaceRecognition boxes={boxes} imageUrl={imageUrl}/>
           </div>
           );
         }
@@ -147,7 +192,7 @@ class App extends Component {
         <Particles className="particles"
           params={particlesOptions}
           />
-        <Navigation isSignedIn={isSignedIn} onRouteChange={this.onRouteChange}/>
+        <Navigation isSignedIn={isSignedIn} onRouteChange={this.onRouteChange} showProfile={this.showProfile}/>
         {this.routeComponents(route)}
         
       </div>
