@@ -46,6 +46,7 @@ class Profile extends React.Component {
         .then(resp => {
             if (resp === 'success') {
                 this.props.loadUser(Object.assign(this.props.user, this.state));
+                this.props.hideProfile();
             }
         });
     }
@@ -65,13 +66,16 @@ class Profile extends React.Component {
                         
                         <label className="mt2 fw6" htmlFor="user-name">Name:</label>
                         <input 
-                        className="pa2 ba w-100" placeholder={user.name} onChange={this.onFormChange} type="name" name="user-name"  id="name"/>
-                        <label className="mt2 fw6" htmlFor="user-name">Age:</label>
+                        className="pa2 ba w-100" placeholder={user.name} 
+                        onChange={this.onFormChange} type="name" name="user-name"  id="name"/>
+                        <label className="mt2 fw6" htmlFor="user-age">Age:</label>
                         <input 
-                        className="pa2 ba w-100" placeholder={user.age} onChange={this.onFormChange} type="age" name="user-age"  id="age"/>
-                        <label className="mt2 fw6" htmlFor="user-name">Pet:</label>
+                        className="pa2 ba w-100" placeholder={user.age} 
+                        onChange={this.onFormChange} type="age" name="user-age"  id="age"/>
+                        <label className="mt2 fw6" htmlFor="user-pet">Pet:</label>
                         <input 
-                        className="pa2 ba w-100" placeholder={user.pet} onChange={this.onFormChange} type="pet" name="user-pet"  id="pet"/>
+                        className="pa2 ba w-100" placeholder={user.pet} 
+                        onChange={this.onFormChange} type="pet" name="user-pet"  id="pet"/>
                         <div className="mt4" style={{display: 'flex', justifyContent: 'space-evenly'}}>
                             <button className="b pa2 grow pointer hover-white w-40 bg-light-blue b--black-20" 
                             onClick={() => this.onSaveProfile(this.state)}>Save</button>
